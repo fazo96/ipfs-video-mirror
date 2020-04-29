@@ -5,10 +5,6 @@ const Koa = require('koa')
 const ytdl = require('ytdl-core')
 const ipfsClient = require('ipfs-http-client')
 
-const VIDEOS_PATH = process.env.VIDEOS_PATH || path.join(os.tmpdir(), './ipfs_youtube')
-
-fs.mkdir(VIDEOS_PATH, err => {}) // ignore error
-
 async function getVideoMapping(v) {
   try {
     const folder = await ipfs.files.ls('/youtube')
@@ -34,22 +30,14 @@ const ipfs = ipfsClient(process.env.IPFS_API) // if undefined uses localhost:500
 app.use(async (ctx, next) => {
   console.log(ctx.method, ctx.path, ctx.querystring)
   if (ctx.method === 'GET' && ctx.path === '/watch') {
-    const { v, ...options } = ctx.query
+    const { v } = ctx.query
     console.log('Reading', v)
     let cid = await getVideoMapping(v)
     if (!cid) {
       console.log('MISS', v)
       const videoPath = path.join(VIDEOS_PATH, `/${v}.flv`)
       console.log('Downloading', v)
-      const stream = ytdl(v, options).pipe(fs.createWriteStream(videoPath));
-      await new Promise(resolve => stream.on('finish', resolve))
-      console.log('Downloaded', v)
-      const buffer = await new Promise((resolve, reject) => {
-        fs.readFile(videoPath, (err, res) => {
-          if (err) reject(err); else resolve(res)
-        })
-      })
-      await ipfs.files.write(`/youtube/${v}.flv`, buffer, { create: true, parents: true })
+      await ipfs.files.write(`/youtube/${v}.flv`, ytdl(v), { create: true, parents: true })
       cid = await getVideoMapping(v)
       console.log(v, '=> IPFS', cid)
     } else {
@@ -62,6 +50,7 @@ app.use(async (ctx, next) => {
       ctx.response.body = `
         <body>
           <a href="${ipfsUrl}">${ipfsUrl}</a>
+          <br>
           <video controls src="${ipfsUrl}" />
         </body>
       `
