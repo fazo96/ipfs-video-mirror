@@ -1,5 +1,3 @@
-const fs = require('fs')
-const os = require('os')
 const path = require('path')
 const Koa = require('koa')
 const ytdl = require('ytdl-core')
@@ -22,6 +20,7 @@ async function getVideoMapping(v) {
 
 const app = new Koa()
 
+const GATEWAY = process.env.IPFS_GATEWAY || 'https://ipfs.io'
 const ipfs = ipfsClient(process.env.IPFS_API) // if undefined uses localhost:5001
 
 // This is to reset the "cache" if needed
@@ -45,7 +44,7 @@ app.use(async (ctx, next) => {
     }
     if (cid) {
       console.log('Responding')
-      const ipfsUrl = `https://ipfs.io/ipfs/${cid}`
+      const ipfsUrl = `${GATEWAY}/ipfs/${cid}`
       ctx.response.set('Content-Type', 'text/html')
       ctx.response.body = `
         <body>
@@ -56,7 +55,6 @@ app.use(async (ctx, next) => {
       `
       ctx.response.set('X-Ipfs-Path', ipfsUrl)
       ctx.response.status = 200
-      // ctx.response.set('Location', ipfsUrl)
       console.log('OK')
     } else {
       ctx.response.status = 500
