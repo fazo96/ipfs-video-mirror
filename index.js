@@ -34,7 +34,6 @@ app.use(async (ctx, next) => {
     let cid = await getVideoMapping(v)
     if (!cid) {
       console.log('MISS', v)
-      const videoPath = path.join(VIDEOS_PATH, `/${v}.flv`)
       console.log('Downloading', v)
       await ipfs.files.write(`/youtube/${v}.flv`, ytdl(v), { create: true, parents: true })
       cid = await getVideoMapping(v)
